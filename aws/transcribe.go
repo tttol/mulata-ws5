@@ -1,8 +1,7 @@
-package main
+package aws
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -36,15 +35,5 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 			fmt.Println("Error during message writing:", err)
 			break
 		}
-	}
-}
-
-func main() {
-	http.HandleFunc("/ws", handleConnection)
-
-	fmt.Println("WebSocket server started on :3001...")
-	err := http.ListenAndServe(":3001", nil)
-	if err != nil {
-		log.Fatal("ListenAndServe error on port=3001:", err)
 	}
 }

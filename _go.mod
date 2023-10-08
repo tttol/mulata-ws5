@@ -1,4 +1,4 @@
-module github.com/tttol/mulata-ws5
+module mulata-ws5
 
 go 1.20
 
