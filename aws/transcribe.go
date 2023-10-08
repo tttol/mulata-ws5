@@ -13,7 +13,7 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func handleConnection(w http.ResponseWriter, r *http.Request) {
+func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	// HTTP接続をWebSocketにアップグレード
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
