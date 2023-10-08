@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -41,6 +42,9 @@ func handleConnection(w http.ResponseWriter, r *http.Request) {
 func main() {
 	http.HandleFunc("/ws", handleConnection)
 
-	fmt.Println("WebSocket server started on :5000...")
-	http.ListenAndServe(":5000", nil)
+	fmt.Println("WebSocket server started on :3001...")
+	err := http.ListenAndServe(":3001", nil)
+	if err != nil {
+		log.Fatal("ListenAndServe error on port=3001:", err)
+	}
 }
