@@ -26,13 +26,18 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	for {
 		messageType, msg, err := ws.ReadMessage()
 		if err != nil {
-			fmt.Println("Error during message reading:", err)
+			fmt.Println("Error during reading message:", err)
 			break
 		}
-		fmt.Println("Received:", string(msg))
+		fmt.Println("MessageType:", messageType)
+		fmt.Println("Received(raw msg):", msg)
+		if messageType == 1 {
+			fmt.Println("Received(stringfied):", string(msg))
+		}
+
 		err = ws.WriteMessage(messageType, msg)
 		if err != nil {
-			fmt.Println("Error during message writing:", err)
+			fmt.Println("Error during writing message:", err)
 			break
 		}
 	}
