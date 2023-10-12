@@ -7,4 +7,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 )
 
-require github.com/jmespath/go-jmespath v0.4.0 // indirect
+require (
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	golang.org/x/tools v0.14.0
+)
