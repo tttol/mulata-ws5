@@ -1,9 +1,12 @@
-package main
+package aws
 
 import (
 	"bytes"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"os"
+	"os/exec"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -48,7 +51,7 @@ func startPolling(transcribeSvc *transcribeservice.TranscribeService, jobName st
 			resultChan <- *jobOutput.TranscriptionJob.Transcript.TranscriptFileUri
 			return
 		} else if *jobOutput.TranscriptionJob.TranscriptionJobStatus == "FAILED" {
-			errorChan <- fmt.Errorf("transcription job failed")
+			errorChan <- fmt.Errorf("transcription job failed. Reason: %s", *jobOutput.TranscriptionJob.FailureReason)
 			return
 		}
 	}
@@ -73,53 +76,72 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	transcribeSvc := transcribeservice.New(session)
 
 	for {
-		messageType, msg, err := ws.ReadMessage()
+		_, audioMsg, err := ws.ReadMessage()
 		if err != nil {
 			fmt.Println("Error during reading message:", err)
 			break
 		}
 
-		if messageType == websocket.BinaryMessage {
-			// Upload audio data to S3
-			bucket := "mulata-appfile"
-			key := fmt.Sprintf("audio/audio_%d.mp3", time.Now().Unix())
-			if err := uploadToS3(session, bucket, key, msg); err != nil {
-				fmt.Println("Error uploading to S3:", err)
-				continue
-			}
+		// msgを一時ファイルに書き込む
+		tmpFile, err := ioutil.TempFile("", "audio-*.webm")
+		if err != nil {
+			fmt.Println("Error creating temporary file:", err)
+			return
+		}
+		defer os.Remove(tmpFile.Name())
 
-			s3Uri := fmt.Sprintf("s3://%s/%s", bucket, key)
+		if _, err := tmpFile.Write(audioMsg); err != nil {
+			fmt.Println("Error writing to temporary file:", err)
+			return
+		}
 
-			// Start transcription job
-			jobName := fmt.Sprintf("TranscriptionJob_%d", time.Now().Unix())
-			input := &transcribeservice.StartTranscriptionJobInput{
-				LanguageCode: aws.String("en-US"),
-				Media: &transcribeservice.Media{
-					MediaFileUri: aws.String(s3Uri),
-				},
-				MediaFormat:          aws.String("mp3"),
-				TranscriptionJobName: aws.String(jobName),
-			}
+		// ffmpegを使用して、一時ファイルをMP3ファイルに変換する
+		cmd := exec.Command("ffmpeg", "-i", tmpFile.Name(), "-vn", "-acodec", "libmp3lame", "-qscale:a", "2", "-f", "mp3", "-")
+		out, err := cmd.Output()
+		if err != nil {
+			fmt.Println("Error encoding audio:", err)
+			return
+		}
 
-			_, err = transcribeSvc.StartTranscriptionJob(input)
-			if err != nil {
-				fmt.Println("Error starting transcription job:", err)
-				continue
-			}
+		// mp3ファイルをS3にアップロードする
+		bucket := "mulata-appfile"
+		key := fmt.Sprintf("audio/audio_%s.mp3", time.Now().Format("20231231150405.000"))
+		if err := uploadToS3(session, bucket, key, out); err != nil {
+			fmt.Println("Error uploading to S3:", err)
+			return
+		}
 
-			resultChan := make(chan string)
-			errorChan := make(chan error)
+		s3Uri := fmt.Sprintf("s3://%s/%s", bucket, key)
 
-			go startPolling(transcribeSvc, jobName, resultChan, errorChan)
+		// Start transcription job
+		jobName := fmt.Sprintf("TranscriptionJob_%d", time.Now().Unix())
+		input := &transcribeservice.StartTranscriptionJobInput{
+			LanguageCode: aws.String("en-US"),
+			Media: &transcribeservice.Media{
+				MediaFileUri: aws.String(s3Uri),
+			},
+			MediaFormat:          aws.String("mp3"),
+			TranscriptionJobName: aws.String(jobName),
+		}
 
-			select {
-			case result := <-resultChan:
-				fmt.Println("Transcription completed. Result URL:", result)
-			case err := <-errorChan:
-				fmt.Println("Error during transcription:", err)
-			case <-time.After(1 * time.Minute):
-				fmt.Println("Timed out waiting for transcription result")
-			}
+		_, err = transcribeSvc.StartTranscriptionJob(input)
+		if err != nil {
+			fmt.Println("Error starting transcription job:", err)
+			continue
+		}
+
+		resultChan := make(chan string)
+		errorChan := make(chan error)
+
+		go startPolling(transcribeSvc, jobName, resultChan, errorChan)
+
+		select {
+		case result := <-resultChan:
+			fmt.Println("Transcription completed. Result URL:", result)
+		case err := <-errorChan:
+			fmt.Println("Error during transcription:", err)
+		case <-time.After(1 * time.Minute):
+			fmt.Println("Timed out waiting for transcription result")
 		}
 	}
 }
