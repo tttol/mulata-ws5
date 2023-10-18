@@ -116,16 +116,17 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 		// mp3ファイルをS3にアップロードする
 		bucket := "mulata-appfile"
-		key := fmt.Sprintf("audio/audio_%s.mp3", time.Now().Format("20231231150405.000"))
-		if err := uploadToS3(session, bucket, key, out); err != nil {
+		mp3Key := fmt.Sprintf("audio/audio_%s.mp3", time.Now().Format("20231231150405.000"))
+		if err := uploadToS3(session, bucket, mp3Key, out); err != nil {
 			slog.Error("Error uploading to S3:", err)
 			return
 		}
-		slog.Info("Uploading to S3 has succeeded.", "bucket", bucket, "key", key)
-		s3Uri := fmt.Sprintf("s3://%s/%s", bucket, key)
+		slog.Info("Uploading to S3 has succeeded.", "bucket", bucket, "key", mp3Key)
+		s3Uri := fmt.Sprintf("s3://%s/%s", bucket, mp3Key)
 
 		// Start transcription job
 		jobName := fmt.Sprintf("TranscriptionJob_%d", time.Now().Unix())
+		outputKey := fmt.Sprintf("transcribe/out/transcribe_%s.json", time.Now().Format("20231231150405.000"))
 		input := &transcribeservice.StartTranscriptionJobInput{
 			LanguageCode: aws.String("en-US"),
 			Media: &transcribeservice.Media{
@@ -133,6 +134,8 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			},
 			MediaFormat:          aws.String("mp3"),
 			TranscriptionJobName: aws.String(jobName),
+			OutputBucketName:     aws.String(bucket),
+			OutputKey:            aws.String(outputKey),
 		}
 
 		_, err = transcribeSvc.StartTranscriptionJob(input)
@@ -148,7 +151,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 
 		select {
 		case result := <-resultChan:
-			slog.Error("Transcription completed. Result URL:", result)
+			slog.Info("Transcription completed. Result URL:%s", result)
 		case err := <-errorChan:
 			slog.Error("Error during transcription:", err)
 		case <-time.After(1 * time.Minute):
