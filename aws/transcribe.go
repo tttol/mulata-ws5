@@ -24,6 +24,16 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
+func toMp3(tmpFileName string) ([]byte, error) {
+	cmd := exec.Command("ffmpeg", "-i", tmpFileName, "-vn", "-acodec", "libmp3lame", "-qscale:a", "2", "-f", "mp3", "-")
+	out, err := cmd.Output()
+	if err != nil {
+		return nil, fmt.Errorf("error encoding audio:", err)
+	}
+	slog.Info("Encoding audio has succeeded.(to mp3)")
+	return out, nil
+}
+
 func uploadToS3(sess *session.Session, bucket, key string, data []byte) error {
 	s3Svc := s3.New(sess)
 	input := &s3.PutObjectInput{
@@ -92,15 +102,13 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer os.Remove(tmpFile.Name())
-
 		if _, err := tmpFile.Write(audioMsg); err != nil {
 			slog.Error("Error writing to temporary file:", err)
 			return
 		}
 
 		// ffmpegを使用して、一時ファイルをMP3ファイルに変換する
-		cmd := exec.Command("ffmpeg", "-i", tmpFile.Name(), "-vn", "-acodec", "libmp3lame", "-qscale:a", "2", "-f", "mp3", "-")
-		out, err := cmd.Output()
+		out, err := toMp3(tmpFile.Name())
 		if err != nil {
 			slog.Error("Error encoding audio:", err)
 			return
@@ -114,7 +122,6 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		slog.Info("Uploading to S3 has succeeded.", "bucket", bucket, "key", key)
-
 		s3Uri := fmt.Sprintf("s3://%s/%s", bucket, key)
 
 		// Start transcription job
