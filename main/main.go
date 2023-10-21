@@ -9,6 +9,11 @@ import (
 )
 
 func main() {
+	runWebSocket()
+	runHttp()
+}
+
+func runWebSocket() {
 	http.HandleFunc("/ws", aws.HandleConnection)
 
 	// Run WebSocket server in a goroutine
@@ -18,8 +23,9 @@ func main() {
 			slog.Error("ListenAndServe error on port 3001:", err)
 		}
 	}()
+}
 
-	// Initialize Gin engine
+func runHttp() {
 	ginEngine := gin.Default()
 	ginEngine.StaticFile("/", "./static/index.html")
 	if err := ginEngine.Run(":8000"); err != nil {
