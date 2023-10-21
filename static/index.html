@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WebSocket Audio Recorder</title>
+</head>
+<body>
+    <h1>WebSocket Audio Recorder</h1>
+    <button id="startRecord">Start Recording</button>
+    <button id="stopRecord" disabled>Stop Recording</button>
+    <script>
+        const ws = new WebSocket("ws://localhost:3001/ws");
+        let mediaRecorder;
+        let audioChunks = [];
+
+        ws.onopen = () => {
+            console.log("Connected to the WebSocket server");
+        };
+
+        document.querySelector("#startRecord").addEventListener("click", function() {
+            navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                    ws.send(audioBlob);
+                    audioChunks = [];
+                };
+                mediaRecorder.start();
+                document.querySelector("#startRecord").disabled = true;
+                document.querySelector("#stopRecord").disabled = false;
+            });
+        });
+
+        document.querySelector("#stopRecord").addEventListener("click", function() {
+            mediaRecorder.stop();
+            document.querySelector("#startRecord").disabled = false;
+            document.querySelector("#stopRecord").disabled = true;
+        });
+    </script>
+</body>
+</html>
