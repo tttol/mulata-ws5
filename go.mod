@@ -37,5 +37,6 @@ require (
 require (
 	github.com/gin-gonic/gin v1.9.1
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/rs/cors v1.10.1
 	golang.org/x/tools v0.14.0
 )

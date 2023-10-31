@@ -24,14 +24,17 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func toMp3(tmpFileName string) ([]byte, error) {
-	cmd := exec.Command("ffmpeg", "-i", tmpFileName, "-vn", "-acodec", "libmp3lame", "-qscale:a", "2", "-f", "mp3", "-")
-	out, err := cmd.Output()
-	if err != nil {
-		return nil, fmt.Errorf("error encoding audio:", err)
+func toMp3(inputFile string) ([]byte, error) {
+	cmd := exec.Command("ffmpeg", "-i", inputFile, "-f", "mp3", "-")
+	var out bytes.Buffer
+	var stderr bytes.Buffer
+	cmd.Stdout = &out
+	cmd.Stderr = &stderr
+	if err := cmd.Run(); err != nil {
+		return nil, fmt.Errorf("error encoding audio: %v (stderr: %s)", err, stderr.String())
+		// return nil, fmt.Errorf("error encoding audio: %v", err)
 	}
-	slog.Info("Encoding audio has succeeded.(to mp3)")
-	return out, nil
+	return out.Bytes(), nil
 }
 
 func uploadToS3(sess *session.Session, bucket, key string, data []byte) error {
@@ -89,7 +92,7 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 	transcribeSvc := transcribeservice.New(session)
 
 	for {
-		_, audioMsg, err := ws.ReadMessage()
+		_, audioData, err := ws.ReadMessage()
 		if err != nil {
 			slog.Error("Error during reading message:", err)
 			break
@@ -99,27 +102,28 @@ func HandleConnection(w http.ResponseWriter, r *http.Request) {
 		tmpFile, err := ioutil.TempFile("", "audio-*.webm")
 		if err != nil {
 			slog.Error("Error creating temporary file:", err)
-			return
+			continue
 		}
-		defer os.Remove(tmpFile.Name())
-		if _, err := tmpFile.Write(audioMsg); err != nil {
+		if _, err := tmpFile.Write(audioData); err != nil {
 			slog.Error("Error writing to temporary file:", err)
-			return
+			continue
 		}
 
 		// ffmpegを使用して、一時ファイルをMP3ファイルに変換する
 		out, err := toMp3(tmpFile.Name())
 		if err != nil {
-			slog.Error("Error encoding audio:", err)
-			return
+			slog.Error("Error encoding audio:", "err", err)
+			continue
 		}
+		slog.Info("Delete temporary file:", tmpFile.Name())
+		os.Remove(tmpFile.Name())
 
 		// mp3ファイルをS3にアップロードする
 		bucket := "mulata-appfile"
 		mp3Key := fmt.Sprintf("audio/audio_%s.mp3", time.Now().Format("20231231150405.000"))
 		if err := uploadToS3(session, bucket, mp3Key, out); err != nil {
 			slog.Error("Error uploading to S3:", err)
-			return
+			continue
 		}
 		slog.Info("Uploading to S3 has succeeded.", "bucket", bucket, "key", mp3Key)
 		s3Uri := fmt.Sprintf("s3://%s/%s", bucket, mp3Key)
