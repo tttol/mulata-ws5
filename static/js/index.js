@@ -31,7 +31,7 @@ document.querySelector("#startRecord").addEventListener("click", function () {
             // Start recording and generate data every 5 seconds
             // mediaRecorder.start(5000);
             startRecording();
-            setTimeout(getTranslateResult, 3000);
+            getTranslateResult();
 
             document.querySelector("#startRecord").disabled = true;
             document.querySelector("#stopRecord").disabled = false;
@@ -60,17 +60,24 @@ const stopRecording = () => {
 }
 
 const getTranslateResult = () => {
+    // if (!isRecording) return;
+
     fetch("http://localhost:3002/get/translate")
-        .then(response => response.json())
+        .then(response => {
+            console.log(`API ressponse: ${response}`);
+            return response.json()
+        })
         .then(data => {
-            console.log(data);
-            document.querySelector("#result").innerHTML += data.result;
+            document.querySelector("#result").innerHTML += data.TranslatedText;
         });
+    
+    setTimeout(getTranslateResult, 3000);
 }
 
 document.querySelector("#closeWs").addEventListener("click", function () {
     mediaRecorder.stop();
     ws.close();
+    isRecording = false;
     document.querySelector("#startRecord").disabled = false;
     document.querySelector("#closeWs").disabled = true;
 });

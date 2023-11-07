@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -11,11 +10,10 @@ import (
 )
 
 func main() {
-	runHttp()      // :8000
-	runWebSocket() // :3001
-	runTranslate() // :3002
-
-	http.ListenAndServe(":8080", nil)
+	go runHttp()      // :8000
+	go runWebSocket() // :3001
+	go runTranslate() // :3002
+	select {}
 }
 
 func runWebSocket() {
@@ -37,7 +35,7 @@ func runHttp() {
 	if err := ginEngine.Run(":8000"); err != nil {
 		slog.Error("Failed to start Gin server:", err)
 	}
-	slog.Info("HTTP server started on :8000...")
+	http.ListenAndServe(":8000", nil)
 }
 
 func runTranslate() {
@@ -45,15 +43,17 @@ func runTranslate() {
 	mux.HandleFunc("/get/translate", func(w http.ResponseWriter, r *http.Request) {
 		result, err := aws.GetResult()
 		if err == nil {
-			slog.Info("Success to get result")
-			fmt.Fprint(w, result)
+			slog.Info("Success to get result: ", result)
+			w.Write([]byte(result)) // Write the result to the response body
 		} else {
 			slog.Error("Failed to get result:", err)
-			fmt.Fprint(w, err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 		}
 	})
 
 	handler := cors.Default().Handler(mux)
-
-	http.ListenAndServe(":3002", handler)
+	slog.Info("API server starting on :3002...")
+	if err := http.ListenAndServe(":3002", handler); err != nil {
+		slog.Error("Failed to start API server:", err)
+	}
 }

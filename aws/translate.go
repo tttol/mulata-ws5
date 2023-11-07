@@ -1,7 +1,8 @@
 package aws
 
 import (
-	"fmt"
+	"io/ioutil"
+	"log/slog"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -10,29 +11,19 @@ import (
 )
 
 func GetResult() (string, error) {
-	// Set up AWS session
-	sess, err := session.NewSession(&aws.Config{
+	sssion := session.Must(session.NewSession(&aws.Config{
 		Region: aws.String("ap-northeast-1"),
-	})
-	if err != nil {
-		fmt.Println("Error creating session:", err)
-		return "", err
-	}
+	}))
+	svc := s3.New(sssion)
 
-	// Create S3 service client
-	svc := s3.New(sess)
-
-	// Set bucket and prefix
 	bucket := "mulata-translate"
 	prefix := "out/"
-
-	// List objects in bucket with specified prefix
-	resp, err := svc.ListObjectsV2(&s3.ListObjectsV2Input{
+	resp, err := svc.ListObjects(&s3.ListObjectsInput{
 		Bucket: aws.String(bucket),
 		Prefix: aws.String(prefix),
 	})
 	if err != nil {
-		fmt.Println("Error listing objects:", err)
+		slog.Error("Error listing objects:", err)
 		return "", err
 	}
 
@@ -45,9 +36,27 @@ func GetResult() (string, error) {
 			latestTime = *obj.LastModified
 		}
 	}
+	slog.Info("Latest object:", latestObject.Key)
 
-	// Print latest object key and creation date
-	fmt.Println("Latest object:", *latestObject.Key)
-	fmt.Println("Creation date:", latestTime)
-	return *latestObject.Key, nil
+	// Get the object
+	obj, err := svc.GetObject(&s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    latestObject.Key,
+	})
+	if err != nil {
+		slog.Error("Error getting object:", err)
+		return "", err
+	}
+	defer obj.Body.Close()
+
+	// Read the object's content
+	body, err := ioutil.ReadAll(obj.Body)
+	if err != nil {
+		slog.Error("Error reading object body:", err)
+		return "", err
+	}
+
+	// Convert the body to a string and return it
+	slog.Info("Success to get result:", string(body))
+	return string(body), nil
 }
