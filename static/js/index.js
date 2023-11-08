@@ -34,7 +34,6 @@ document.querySelector("#startRecord").addEventListener("click", function () {
             getTranslateResult();
 
             document.querySelector("#startRecord").disabled = true;
-            document.querySelector("#stopRecord").disabled = false;
             document.querySelector("#closeWs").disabled = false;
         }); 
 });
@@ -68,7 +67,7 @@ const getTranslateResult = () => {
             return response.json()
         })
         .then(data => {
-            document.querySelector("#result").innerHTML += data.TranslatedText;
+            document.querySelector("#result").innerHTML += data.TranslatedText + "<br/>";
         });
     
     setTimeout(getTranslateResult, 3000);

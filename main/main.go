@@ -30,7 +30,7 @@ func runWebSocket() {
 
 func runHttp() {
 	ginEngine := gin.Default()
-	ginEngine.StaticFile("/", "./html/index.html")
+	ginEngine.StaticFile("/", "./static/index.html")
 	ginEngine.StaticFS("/static", http.Dir("./static"))
 	if err := ginEngine.Run(":8000"); err != nil {
 		slog.Error("Failed to start Gin server:", err)
