@@ -32,9 +32,6 @@ document.querySelector("#startRecord").addEventListener("click", function () {
             // mediaRecorder.start(5000);
             startRecording();
             getTranslateResult();
-
-            document.querySelector("#startRecord").disabled = true;
-            document.querySelector("#closeWs").disabled = false;
         }); 
 });
 
@@ -58,6 +55,8 @@ const stopRecording = () => {
     setTimeout(startRecording, 5000);
 }
 
+let prevText = "";
+
 const getTranslateResult = () => {
     // if (!isRecording) return;
 
@@ -67,16 +66,17 @@ const getTranslateResult = () => {
             return response.json()
         })
         .then(data => {
-            document.querySelector("#result").innerHTML += data.TranslatedText + "<br/>";
+            if (prevText === data.TranslatedText) return;
+            document.querySelector("#result").innerHTML += "<div>" + data.TranslatedText + "</div>";
+            prevText = data.TranslatedText;
         });
     
-    setTimeout(getTranslateResult, 3000);
+    setTimeout(getTranslateResult, 1000);
 }
 
 document.querySelector("#closeWs").addEventListener("click", function () {
     mediaRecorder.stop();
+    // navigator.mediaDevices.getUserMedia({ audio: true }).getTracks().forEach(track => track.stop());
     ws.close();
     isRecording = false;
-    document.querySelector("#startRecord").disabled = false;
-    document.querySelector("#closeWs").disabled = true;
 });
