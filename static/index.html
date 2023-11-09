@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>mulata</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
+</head>
+<style>
+    body {
+        background-color: #5e5e5e;
+        color: #ffffff;
+    }
+
+    h1 {
+        font-family: 'Roboto', sans-serif;
+        font-weight: 500;
+        font-size: 2.5rem;
+        margin-bottom: 0;
+    }
+
+    main {
+        margin: 0 13%;
+    }
+
+    .buttonBox {
+        display: flex;
+        flex-direction: row;
+    }
+
+    #startRecord {
+        background-color: #f4962c;
+        border-radius: 10px 10px;
+        padding: 7px;
+        cursor: pointer;
+    }
+
+    #closeWs {
+        background-color: #cfcbc6;
+        border-radius: 10px 10px;
+        padding: 7px;
+        cursor: pointer;
+        margin-left: 5px;
+    }
+
+    #startRecord:hover,
+    #closeWs:hover {
+        opacity: 0.8;
+    }
+
+    .resultBox {
+        background-color: #cccccc;
+        color: #4c4c4c;
+        padding: 10px;
+        margin-top: 10px;
+        border-radius: 10px 10px;
+        min-height: 400px;
+    }
+
+    .resultBox .head {
+        font-weight: bold;
+    }
+</style>
+
+<body>
+    <main>
+        <h1>mulata/ムラタ</h1>
+        <p>STARTボタンを押すと録音と翻訳が開始されます。</p>
+        <!-- <img src="img/play.png" /> -->
+        <div class="buttonBox">
+            <div id="startRecord">
+                <span>START</span>
+            </div>
+            <div id="closeWs">
+                <span>END</span>
+            </div>
+        </div>
+        <div class="resultBox">
+            <div class="head">翻訳結果</div>
+            <div id="result"></div>
+        </div>
+        <p>※"mulata" means "MUlti LAnguage TrAnslator"</p>
+        <p>※multi languageといいつつ現在は英語→日本語の一方通行翻訳しか対応できていません</p>
+    </main>
+    <script src="static/js/index.js"></script>
+    <script src="https://unpkg.com/material-components-web@latest/dist/material-components-web.min.js"></script>
+    <script>mdc.autoInit();</script>
+</body>
+
+</html>
