@@ -28,8 +28,6 @@ document.querySelector("#startRecord").addEventListener("click", function () {
                 }
             };
 
-            // Start recording and generate data every 5 seconds
-            // mediaRecorder.start(5000);
             startRecording();
             getTranslateResult();
             getTranscribeResult();
@@ -53,15 +51,12 @@ const stopRecording = () => {
     console.log("stop recording");
     mediaRecorder.stop();
     isRecording = false;
-    // setTimeout(startRecording, 5000);
     startRecording();
 }
 
 let prevText = "";
 
 const getTranslateResult = () => {
-    // if (!isRecording) return;
-
     fetch("http://localhost:3002/get/translate")
         .then(response => response.json())
         .then(data => {
@@ -77,8 +72,6 @@ const getTranslateResult = () => {
 let prevTranscribeText = "";
 
 const getTranscribeResult = () => {
-    // if (!isRecording) return;
-
     fetch("http://localhost:3003/get/transcribe")
         .then(response => response.json())
         .then(data => {
