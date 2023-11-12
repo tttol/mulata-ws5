@@ -32,6 +32,7 @@ document.querySelector("#startRecord").addEventListener("click", function () {
             // mediaRecorder.start(5000);
             startRecording();
             getTranslateResult();
+            getTranscribeResult();
         }); 
 });
 
@@ -52,7 +53,8 @@ const stopRecording = () => {
     console.log("stop recording");
     mediaRecorder.stop();
     isRecording = false;
-    setTimeout(startRecording, 5000);
+    // setTimeout(startRecording, 5000);
+    startRecording();
 }
 
 let prevText = "";
@@ -61,34 +63,32 @@ const getTranslateResult = () => {
     // if (!isRecording) return;
 
     fetch("http://localhost:3002/get/translate")
-        .then(response => {
-            console.log(`API ressponse: ${response}`);
-            return response.json()
-        })
+        .then(response => response.json())
         .then(data => {
             if (prevText === data.TranslatedText) return;
             document.querySelector("#result").innerHTML += "<div>" + data.TranslatedText + "</div>";
             prevText = data.TranslatedText;
         });
     
-    setTimeout(getTranslateResult, 10000);
-    setTimeout(getTranscribeResult, 10000);
+    setTimeout(getTranslateResult, 3000);
 }
+
+
+let prevTranscribeText = "";
 
 const getTranscribeResult = () => {
     // if (!isRecording) return;
 
     fetch("http://localhost:3003/get/transcribe")
-        .then(response => {
-            console.log(`API ressponse: ${response}`);
-            return response.json()
-        })
+        .then(response => response.json())
         .then(data => {
+            if (prevTranscribeText === data.results.transcripts[0].transcript) return;
             document.querySelector("#transcribe").innerHTML += "<div>" + data.results.transcripts[0].transcript + "</div>";
+            prevTranscribeText = data.results.transcripts[0].transcript;
         });
     
-    setTimeout(getTranslateResult, 10000);
-}
+    setTimeout(getTranscribeResult, 3000);
+}   
 
 document.querySelector("#closeWs").addEventListener("click", function () {
     mediaRecorder.stop();
