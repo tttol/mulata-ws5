@@ -1,2 +1,2 @@
 # mulata-ws5
-mulataで使うwesbsocketサーバー
+mulata means `MUlti LAnguage TrAnslator`

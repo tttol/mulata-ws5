@@ -10,9 +10,10 @@ import (
 )
 
 func main() {
-	go runHttp()      // :8000
-	go runWebSocket() // :3001
-	go runTranslate() // :3002
+	go runHttp()       // :8000
+	go runWebSocket()  // :3001
+	go runTranslate()  // :3002
+	go runTranscribe() // :3003
 	select {}
 }
 
@@ -54,6 +55,26 @@ func runTranslate() {
 	handler := cors.Default().Handler(mux)
 	slog.Info("API server starting on :3002...")
 	if err := http.ListenAndServe(":3002", handler); err != nil {
+		slog.Error("Failed to start API server:", err)
+	}
+}
+
+func runTranscribe() {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/get/transcribe", func(w http.ResponseWriter, r *http.Request) {
+		result, err := aws.Get()
+		if err == nil {
+			slog.Info("Success to get result: ", result)
+			w.Write([]byte(result)) // Write the result to the response body
+		} else {
+			slog.Error("Failed to get result:", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+
+	handler := cors.Default().Handler(mux)
+	slog.Info("API server starting on :3003...")
+	if err := http.ListenAndServe(":3003", handler); err != nil {
 		slog.Error("Failed to start API server:", err)
 	}
 }

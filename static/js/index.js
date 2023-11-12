@@ -71,7 +71,23 @@ const getTranslateResult = () => {
             prevText = data.TranslatedText;
         });
     
-    setTimeout(getTranslateResult, 1000);
+    setTimeout(getTranslateResult, 10000);
+    setTimeout(getTranscribeResult, 10000);
+}
+
+const getTranscribeResult = () => {
+    // if (!isRecording) return;
+
+    fetch("http://localhost:3003/get/transcribe")
+        .then(response => {
+            console.log(`API ressponse: ${response}`);
+            return response.json()
+        })
+        .then(data => {
+            document.querySelector("#transcribe").innerHTML += "<div>" + data.results.transcripts[0].transcript + "</div>";
+        });
+    
+    setTimeout(getTranslateResult, 10000);
 }
 
 document.querySelector("#closeWs").addEventListener("click", function () {
