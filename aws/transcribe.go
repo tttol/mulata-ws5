@@ -32,7 +32,6 @@ func toMp3(inputFile string) ([]byte, error) {
 	cmd.Stderr = &stderr
 	if err := cmd.Run(); err != nil {
 		return nil, fmt.Errorf("error encoding audio: %v (stderr: %s)", err, stderr.String())
-		// return nil, fmt.Errorf("error encoding audio: %v", err)
 	}
 	return out.Bytes(), nil
 }
